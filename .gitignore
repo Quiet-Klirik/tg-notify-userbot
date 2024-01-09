@@ -7,3 +7,4 @@ venv/
 *.session-journal
 config/.receivers
 config/.message
+output/
