@@ -4,3 +4,6 @@ venv/
 .flake8
 .env
 *.session
+*.session-journal
+config/.receivers
+config/.message
