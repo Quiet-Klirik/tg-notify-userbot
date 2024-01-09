@@ -121,7 +121,6 @@ class ProjectManager:
         return cls._instance
 
     def send_message(self, chat_id: int = None):
-        settings.LOGGER.info("Sending message...")
         message_text = self.files_manager.get_message_text()
         receiver_id = (
             self.files_manager.get_next_receiver() if not chat_id else chat_id
@@ -129,6 +128,7 @@ class ProjectManager:
         if not receiver_id:
             settings.LOGGER.info("Message was not sent")
             return
+        settings.LOGGER.info(f"Sending message to {receiver_id}...")
         self.app.send_message(
             receiver_id,
             message_text,
