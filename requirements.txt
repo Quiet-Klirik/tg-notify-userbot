@@ -1,2 +1,4 @@
 Pyrogram==2.0.106
 TgCrypto==1.2.5
+schedule==1.2.1
+python-dotenv==1.0.0
