@@ -5,6 +5,7 @@ from pathlib import Path
 import schedule
 from pyrogram import Client
 from pyrogram.enums import ParseMode
+from pyrogram.errors import AuthKeyUnregistered
 
 from core import settings
 
@@ -121,6 +122,10 @@ class ProjectManager:
         return cls._instance
 
     def send_message(self, chat_id: int = None):
+        try:
+            self.app.get_me()
+        except AuthKeyUnregistered:
+            return
         message_text = self.files_manager.get_message_text()
         receiver_id = (
             self.files_manager.get_next_receiver() if not chat_id else chat_id

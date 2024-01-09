@@ -1,12 +1,14 @@
 import logging
 import os
 import pathlib
+import sys
 
 from dotenv import load_dotenv
 
 load_dotenv()
-BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
-
+BASE_DIR = pathlib.Path(
+    os.path.dirname(os.path.abspath(sys.argv[0]))
+).resolve()
 
 # Telegram API data
 API_ID = os.environ["API_ID"]
