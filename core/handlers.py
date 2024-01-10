@@ -36,3 +36,13 @@ def prepare_handlers(project_manager: ProjectManager):
         chat_id = message.chat.id
         project_manager.remove_receiver(chat_id)
         message.delete()
+
+    @app.on_message(filters.command("ad_start", prefixes=".") & filters.me)
+    def start_sending(_, message: Message):
+        project_manager.start_sending()
+        message.delete()
+
+    @app.on_message(filters.command("ad_stop", prefixes=".") & filters.me)
+    def stop_sending(_, message: Message):
+        project_manager.stop_sending()
+        message.delete()

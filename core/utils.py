@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 from pathlib import Path
@@ -42,9 +43,12 @@ class FilesManager:
                     return
                 if not 0 <= self.current_receiver_index < len(lines):
                     self.current_receiver_index = 0
+                    raise StopIteration
                 line = lines[self.current_receiver_index]
                 self.current_receiver_index += 1
                 return int(line)
+        except StopIteration:
+            raise StopIteration
         except Exception as e:
             settings.LOGGER.info(f"Receiver reading error: {e}")
 
@@ -88,21 +92,38 @@ class FilesManager:
 
 
 class Scheduler:
-    @staticmethod
-    def set_interval_func(scheduled_func: callable):
+    scheduled_func = None
+    is_work = False
+
+    def set_interval_func(self, scheduled_func: callable):
         settings.LOGGER.info("Preparing scheduler...")
+        self.scheduled_func = scheduled_func
         schedule.every(settings.SENDING_INTERVAL).minutes.do(scheduled_func)
 
-    @staticmethod
-    def work():
-        settings.LOGGER.info("Scheduler works...")
-        while True:
+    def work(self):
+        settings.LOGGER.info("Scheduler works.")
+        while self.is_work:
             schedule.run_pending()
             time.sleep(1)
+        settings.LOGGER.info("Scheduler was stopped.")
 
     def run(self):
         settings.LOGGER.info("Running scheduler...")
-        threading.Thread(target=self.work).start()
+        if not self.scheduled_func:
+            settings.LOGGER.info("Scheduled func was not set.")
+            settings.LOGGER.info("Scheduler running was failed.")
+            return
+        if self.is_work:
+            settings.LOGGER.info("Scheduler is already works.")
+            return
+        self.is_work = True
+        thread = threading.Thread(target=self.work)
+        thread.daemon = True
+        thread.start()
+
+    def stop(self):
+        settings.LOGGER.info("Stopping scheduler...")
+        self.is_work = False
 
 
 class ProjectManager:
@@ -127,9 +148,15 @@ class ProjectManager:
         except AuthKeyUnregistered:
             return
         message_text = self.files_manager.get_message_text()
-        receiver_id = (
-            self.files_manager.get_next_receiver() if not chat_id else chat_id
-        )
+        try:
+            receiver_id = (
+                self.files_manager.get_next_receiver()
+                if not chat_id else chat_id
+            )
+        except StopIteration:
+            settings.LOGGER.info("All receivers are notified.")
+            self.stop_sending()
+            return
         if not receiver_id:
             settings.LOGGER.info("Message was not sent")
             return
@@ -160,9 +187,18 @@ class ProjectManager:
         )
         self.files_manager.set_message_text(message_text)
 
+    def start_sending(self):
+        settings.LOGGER.info("Start sending...")
+        self.scheduler.run()
+
+    def stop_sending(self):
+        settings.LOGGER.info("Stop sending...")
+        self.scheduler.stop()
+        self.files_manager.current_receiver_index = 0
+        settings.LOGGER.info("Sending was stopped.")
+
     def run(self):
         settings.LOGGER.info("Running app...")
         self.scheduler.set_interval_func(self.send_message)
-        self.scheduler.run()
         settings.LOGGER.info("App successful started!")
         self.app.run()
